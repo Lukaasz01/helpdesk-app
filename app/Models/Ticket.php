@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ticket extends Model
 {
@@ -25,8 +26,11 @@ class Ticket extends Model
         return $this->belongsTo(User::class, 'client_id');
     }
 
-    public function technician(): BelongsTo
-    {
+    public function technician(): BelongsTo {
         return $this->belongsTo(User::class, 'technician_id');
+    }
+    
+    public function comments(): HasMany {
+        return $this->hasMany(Comment::class)->latest();
     }
 }

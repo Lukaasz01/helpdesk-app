@@ -67,8 +67,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <a href="{{ route('tickets.show', $ticket) }}"
-                                        class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                    <a href="{{ route('tickets.show', $ticket) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
                                         Ver detalhes
                                     </a>
                                 </td>

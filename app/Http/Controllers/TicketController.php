@@ -52,4 +52,24 @@ class TicketController extends Controller
 
         return view('tickets.show', compact('ticket', 'technicians'));
     }
+
+    public function update(Request $request, Ticket $ticket) {
+        $request->validate([
+            'status' => ['required', 'in:open,in_progress,resolved,closed'],
+            'technician_id' => ['nullable', 'exists:users,id'],
+        ]);
+
+        $data = [
+            'status' => $request->status,
+            'technician_id' => $request->technician_id,
+        ];
+
+        if ($request->status === 'resolved' && !$ticket->resolved_at) {
+            $data['resolved_at'] = now();
+        }
+
+        $ticket->update($data);
+
+        return back()->with('status', 'Chamado atualizado com sucesso!');
+    }
 }
