@@ -44,4 +44,12 @@ class TicketController extends Controller
         return redirect()->route('tickets.index')
             ->with('status', "Chamado #{$ticket->code} aberto com sucesso!");
     }
+
+    public function show(Ticket $ticket) {
+        $ticket->load(['client', 'technician']);
+        
+        $technicians = \App\Models\User::role('technician')->get();
+
+        return view('tickets.show', compact('ticket', 'technicians'));
+    }
 }
