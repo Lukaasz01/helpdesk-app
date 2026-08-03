@@ -8,27 +8,37 @@ use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {
-    public function index()
-    {
+    public function index(Request $request) {
         $user = auth()->user();
 
-        // RBAC: Filtra chamados baseados no perfil do usuário
         $tickets = Ticket::with(['client', 'technician'])
             ->when($user->hasRole('client'), fn($q) => $q->where('client_id', $user->id))
             ->when($user->hasRole('technician'), fn($q) => $q->where('technician_id', $user->id))
+            
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('code', 'like', "%{$search}%")
+                        ->orWhere('title', 'like', "%{$search}%");
+                });
+            })
+            
+            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
+            
+            ->when($request->filled('priority'), fn($q) => $q->where('priority', $request->priority))
+            
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('tickets.index', compact('tickets'));
     }
 
-    public function create()
-    {
+    public function create() {
         return view('tickets.create');
     }
 
-    public function store(StoreTicketRequest $request)
-    {
+    public function store(StoreTicketRequest $request) {
         // Gera um código único amigável: Ex. OS-2026-A8F2
         $code = 'OS-' . date('Y') . '-' . strtoupper(substr(uniqid(), -4));
 
