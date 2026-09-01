@@ -1,59 +1,85 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Helpdesk — Sistema de Chamados
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema de abertura e acompanhamento de chamados técnicos construído em **Laravel 12**, com controle de acesso por papel: quem abre o chamado, quem atende e quem administra veem coisas diferentes.
 
-## About Laravel
+## O problema
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Suporte técnico organizado por e-mail se perde: não há número de protocolo, ninguém sabe quem ficou responsável, e o cliente não consegue acompanhar o andamento. Este sistema dá a cada chamado um **código único** (`OS-2026-0001`), um **responsável**, um **status** e uma **prioridade**, com histórico de comentários no próprio chamado.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Funcionalidades
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Chamados (CRUD completo)** — abertura, consulta, edição e encerramento
+- **Código de protocolo único** — gerado no padrão `OS-ANO-NNNN`, com unicidade garantida no banco
+- **Ciclo de vida do chamado** — `aberto` → `em andamento` → `resolvido` → `fechado`
+- **Prioridades** — baixa, média, alta e urgente
+- **Papéis distintos** — cliente (abre), técnico (atende) e administrador
+- **Comentários** — histórico de interação dentro de cada chamado
+- **Dashboard** — visão consolidada dos chamados
+- **Autenticação completa** — cadastro, login, verificação de e-mail, recuperação e troca de senha
+- **Perfil do usuário** — edição de dados e exclusão da conta
 
-## Learning Laravel
+## Modelagem
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```
+User  1 ──── N  Ticket   (como client_id — quem abriu)
+User  1 ──── N  Ticket   (como technician_id — quem atende)
+Ticket 1 ──── N  Comment
+User  N ──── N  Role/Permission   (spatie/laravel-permission)
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+O `Ticket` referencia `users` **duas vezes**, com papéis diferentes na mesma tabela. A exclusão em cascata vale só para o cliente (`onDelete('cascade')`); remover um técnico apenas libera o campo (`nullOnDelete`), porque o chamado precisa sobreviver à saída de quem o atendia.
 
-## Laravel Sponsors
+## Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+PHP 8.2 · Laravel 12 · [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) · Blade · Bootstrap · MySQL · Eloquent ORM
 
-### Premium Partners
+## Rotas
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+| Método | Rota | Descrição | Acesso |
+|---|---|---|---|
+| `GET` | `/dashboard` | Painel com os chamados | autenticado + verificado |
+| `GET·POST·PUT·DELETE` | `/tickets` | CRUD de chamados (`Route::resource`) | autenticado + verificado |
+| `POST` | `/tickets/{ticket}/comments` | Comenta em um chamado | autenticado + verificado |
+| `GET·PATCH·DELETE` | `/profile` | Gerencia o próprio perfil | autenticado |
 
-## Contributing
+## Como rodar
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+**Pré-requisitos:** PHP 8.2+, Composer, MySQL e Node.js.
 
-## Code of Conduct
+```bash
+git clone https://github.com/Lukaasz01/helpdesk-app.git
+cd helpdesk-app
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+composer install
+npm install && npm run build
 
-## Security Vulnerabilities
+cp .env.example .env
+php artisan key:generate
+# configure DB_DATABASE, DB_USERNAME e DB_PASSWORD no .env
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+php artisan migrate
+php artisan serve
+```
 
-## License
+Disponível em `http://localhost:8000`.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Decisões técnicas
+
+- **`spatie/laravel-permission` em vez de um campo `role`** — permissões ficam em tabelas próprias, então criar um papel novo ou ajustar o que cada um pode fazer não exige alterar código nem migrar dados.
+- **Status e prioridade como `enum` no banco** — o banco recusa um valor inválido mesmo que a aplicação erre, em vez de confiar apenas na validação da camada PHP.
+- **`code` com índice único** — o protocolo é o identificador que o usuário enxerga e comunica; a unicidade é garantida no banco, não só na aplicação.
+- **Form Requests (`StoreTicketRequest`)** — a validação fica fora do controller, que só orquestra.
+- **Comentários ordenados por `latest()` na relação** — a ordenação é regra do modelo, não responsabilidade de cada consulta.
+- **Middleware `verified` nas rotas de chamado** — só quem confirmou o e-mail abre chamado, o que reduz abertura por conta falsa.
+
+## Melhorias mapeadas
+
+- [ ] Testes de feature cobrindo as permissões por papel
+- [ ] Notificação por e-mail a cada mudança de status
+- [ ] Filtros e busca por status, prioridade e técnico
+- [ ] Métricas de tempo de atendimento no dashboard
+- [ ] Anexos nos chamados
+
+## Licença
+
+[MIT](LICENSE)
