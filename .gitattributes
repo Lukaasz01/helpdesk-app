@@ -1,11 +1,18 @@
 * text=auto eol=lf
 
 *.blade.php diff=html
-*.css diff=css
-*.html diff=html
-*.md diff=markdown
-*.php diff=php
+*.css       diff=css
+*.html      diff=html
+*.md        diff=markdown
+*.php       diff=php
 
-/.github export-ignore
-CHANGELOG.md export-ignore
-.styleci.yml export-ignore
+# Scripts executados dentro do contêiner precisam de LF mesmo quando o
+# repositório é clonado no Windows: com CRLF o Docker falha ao iniciar.
+docker/php/entrypoint.sh text eol=lf
+*.sh                     text eol=lf
+
+/.github         export-ignore
+/.gitattributes  export-ignore
+/.gitignore      export-ignore
+/tests           export-ignore
+/phpunit.xml     export-ignore
