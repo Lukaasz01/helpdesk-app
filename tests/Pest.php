@@ -1,17 +1,15 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /*
 |--------------------------------------------------------------------------
 | Test Case
 |--------------------------------------------------------------------------
-|
-| The closure you provide to your test functions is always bound to a specific PHPUnit test
-| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
-| need to change it using the "pest()" function to bind a different classes or traits.
-|
 */
 
 pest()->extend(TestCase::class)
@@ -22,11 +20,6 @@ pest()->extend(TestCase::class)
 |--------------------------------------------------------------------------
 | Expectations
 |--------------------------------------------------------------------------
-|
-| When you're writing tests, you often need to check that values meet certain conditions. The
-| "expect()" function gives you access to a set of "expectations" methods that you can use
-| to assert different things. Of course, you may extend the Expectation API at any time.
-|
 */
 
 expect()->extend('toBeOne', function () {
@@ -35,16 +28,50 @@ expect()->extend('toBeOne', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Functions
+| Helpers
 |--------------------------------------------------------------------------
-|
-| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
-| project that you don't want to repeat in every file. Here you can also expose helpers as
-| global functions to help you to reduce the number of lines of code in your test files.
-|
 */
 
-function something()
+/**
+ * Garante que os três papéis da aplicação existem no banco de teste.
+ *
+ * O spatie/laravel-permission mantém as permissões em cache. Sem limpá-lo,
+ * o papel criado em um teste continua em memória no teste seguinte e a
+ * verificação de papel passa por engano.
+ */
+function criarPapeis(): void
 {
-    // ..
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    foreach (['admin', 'technician', 'client'] as $papel) {
+        Role::findOrCreate($papel);
+    }
+}
+
+/**
+ * Cria um usuário já com o papel informado.
+ */
+function usuarioCom(string $papel): User
+{
+    criarPapeis();
+
+    $usuario = User::factory()->create();
+    $usuario->assignRole($papel);
+
+    return $usuario;
+}
+
+function cliente(): User
+{
+    return usuarioCom('client');
+}
+
+function tecnico(): User
+{
+    return usuarioCom('technician');
+}
+
+function administrador(): User
+{
+    return usuarioCom('admin');
 }

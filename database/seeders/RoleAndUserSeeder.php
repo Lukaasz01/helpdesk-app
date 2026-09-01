@@ -2,17 +2,17 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleAndUserSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $adminRole = Role::create(['name' => 'admin']);
         $technicianRole = Role::create(['name' => 'technician']);

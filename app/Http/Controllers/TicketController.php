@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Ticket;
 use App\Http\Requests\StoreTicketRequest;
+use App\Models\Ticket;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
-    public function index(Request $request) {
+    public function index(Request $request)
+    {
         $user = auth()->user();
 
         $tickets = Ticket::with(['client', 'technician'])
-            ->when($user->hasRole('client'), fn($q) => $q->where('client_id', $user->id))
-            ->when($user->hasRole('technician'), fn($q) => $q->where('technician_id', $user->id))
-            
+            ->when($user->hasRole('client'), fn ($q) => $q->where('client_id', $user->id))
+            ->when($user->hasRole('technician'), fn ($q) => $q->where('technician_id', $user->id))
+
             ->when($request->filled('search'), function ($q) use ($request) {
                 $search = $request->search;
                 $q->where(function ($sub) use ($search) {
@@ -22,11 +25,11 @@ class TicketController extends Controller
                         ->orWhere('title', 'like', "%{$search}%");
                 });
             })
-            
-            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
-            
-            ->when($request->filled('priority'), fn($q) => $q->where('priority', $request->priority))
-            
+
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
+
+            ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->priority))
+
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -34,16 +37,15 @@ class TicketController extends Controller
         return view('tickets.index', compact('tickets'));
     }
 
-    public function create() {
+    public function create()
+    {
         return view('tickets.create');
     }
 
-    public function store(StoreTicketRequest $request) {
-        // Gera um código único amigável: Ex. OS-2026-A8F2
-        $code = 'OS-' . date('Y') . '-' . strtoupper(substr(uniqid(), -4));
-
+    public function store(StoreTicketRequest $request)
+    {
         $ticket = Ticket::create([
-            'code' => $code,
+            'code' => Ticket::gerarCodigo(),
             'title' => $request->title,
             'description' => $request->description,
             'priority' => $request->priority,
@@ -55,18 +57,26 @@ class TicketController extends Controller
             ->with('status', "Chamado #{$ticket->code} aberto com sucesso!");
     }
 
-    public function show(Ticket $ticket) {
-        $ticket->load(['client', 'technician']);
-        
-        $technicians = \App\Models\User::role('technician')->get();
+    public function show(Ticket $ticket)
+    {
+        $this->authorize('view', $ticket);
+
+        $ticket->load(['client', 'technician', 'comments.user']);
+
+        $technicians = User::role('technician')->get();
 
         return view('tickets.show', compact('ticket', 'technicians'));
     }
 
-    public function update(Request $request, Ticket $ticket) {
+    public function update(Request $request, Ticket $ticket)
+    {
+        $this->authorize('update', $ticket);
+
         $request->validate([
             'status' => ['required', 'in:open,in_progress,resolved,closed'],
-            'technician_id' => ['nullable', 'exists:users,id'],
+            // Só aceita como responsável quem de fato tem o papel de técnico:
+            // "exists:users,id" sozinho deixaria atribuir o chamado a um cliente.
+            'technician_id' => ['nullable', Rule::in(User::role('technician')->pluck('id'))],
         ]);
 
         $data = [
@@ -74,7 +84,7 @@ class TicketController extends Controller
             'technician_id' => $request->technician_id,
         ];
 
-        if ($request->status === 'resolved' && !$ticket->resolved_at) {
+        if ($request->status === 'resolved' && ! $ticket->resolved_at) {
             $data['resolved_at'] = now();
         }
 

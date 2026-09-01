@@ -16,15 +16,15 @@ return new class extends Migration
             $table->string('code')->unique(); // Ex: OS-2026-0001
             $table->string('title');
             $table->text('description');
-            
+
             // Relacionamentos
             $table->foreignId('client_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('technician_id')->nullable()->constrained('users')->nullOnDelete();
-            
+
             // Status e Prioridades
             $table->enum('status', ['open', 'in_progress', 'resolved', 'closed'])->default('open');
             $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium');
-            
+
             $table->timestamp('resolved_at')->nullable();
             $table->timestamps();
         });
